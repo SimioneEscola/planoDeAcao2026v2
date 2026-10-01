@@ -122,7 +122,7 @@ select.status-sel:focus{outline:1px solid var(--header-green)}
 td.st-nao-iniciado{background:#d9d9d9!important} td.st-em-andamento{background:#FFFF00!important} td.st-concluido{background:#92D050!important} td.st-atrasado{background:#FF0000!important} td.st-atrasado select{color:white}
 select.resp-sel{width:100%;border:none;font-family:inherit;font-size:11.5px;padding:2px;background:transparent;outline:none;cursor:pointer}
 select.resp-sel:focus{outline:1px solid var(--header-green)}
-col.c-num{width:28px} col.c-tematica{width:160px} col.c-meta-exc{width:85px} col.c-meta-esc{width:90px} col.c-bi{width:85px} col.c-bi-final{width:90px} col.c-num-acao{width:22px} col.c-acao{width:280px} col.c-resp{width:130px} col.c-prazo{width:90px} col.c-status{width:110px}
+col.c-num{width:28px} col.c-tematica{width:160px} col.c-meta-exc{width:85px} col.c-meta-esc{width:90px} col.c-bi{width:85px} col.c-bi-final{width:90px} col.c-num-acao{width:22px} col.c-acao{width:420px} col.c-resp{width:130px} col.c-prazo{width:90px} col.c-status{width:110px}
 td.label-cell{font-size:11px;color:var(--text-muted);text-align:center}
 td.sem-header{background:var(--light-green);font-weight:700;text-align:center;font-size:11px}
 
@@ -205,6 +205,8 @@ td.sem-header{background:var(--light-green);font-weight:700;text-align:center;fo
 .btn-save:hover{background:#0d7060}
 .btn-print{background:transparent;color:#bbb;border:1px solid #555;padding:7px 16px;font-size:12px;border-radius:4px;cursor:pointer;font-family:inherit}
 .btn-print:hover{border-color:#aaa;color:white}
+.btn-export{background:#fff;color:#0d6b55;border:none;padding:7px 16px;font-size:12px;font-weight:700;border-radius:4px;cursor:pointer;font-family:inherit}
+.btn-export:hover{background:#E2EFD9}
 .save-status{color:#8bc34a;font-size:12px}
 
 @media print {
@@ -313,9 +315,9 @@ td.sem-header{background:var(--light-green);font-weight:700;text-align:center;fo
       <label>Escola:</label>
       <input class="meta-val" id="meta-escola" type="text" value="EE PROF LUIZ SIMIONI SOBRINHO PROFESSOR"/>
       <label>Equipe Gestora:</label>
-      <input class="meta-val" id="meta-gestora" type="text" value="Gisele (CGPG) · Guilherme (Vice-diretor) · Raffael (Diretor) · Ricardo (Vice-diretor) · Silvana (CGPG)"/>
+      <input class="meta-val" id="meta-gestora" type="text" value="Guilherme (Vice-diretor) · Raffael (Diretor) · Ricardo (Vice-diretor) · Silvana (CGPG) · Thais Marinho (CGPG)"/>
       <label>Atualizado em:</label>
-      <input class="meta-val" id="meta-data" type="date" value="2026-02-18"/>
+      <input class="meta-val" id="meta-data" type="date" value="2026-07-23"/>
     </div>
 
     <!-- VALIDATION STAMP (shown after supervisor submits) -->
@@ -436,6 +438,7 @@ td.sem-header{background:var(--light-green);font-weight:700;text-align:center;fo
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
+        <button class="btn-export" onclick="exportPlano()">📄 Exportar para a comunidade</button>
         <button class="btn-save" onclick="saveData()">Salvar</button>
       </div>
     </div>
@@ -514,7 +517,25 @@ function enterApp(key) {
 
   if (!document.getElementById('tbody-indicadores').hasChildNodes()) {
     renderIndicadores(); renderTematicas();
-    try { const s=localStorage.getItem('pei2026_plano'); if(s) restoreData(JSON.parse(s)); } catch(e){}
+    try {
+      let s=localStorage.getItem('pei2026_plano_v2');
+      if(s){
+        // migração: dados salvos antes da troca de Gisele por Thais Marinho
+        if(s.indexOf('Gisele')>-1){
+          s=s.replace(/Gisele \(CGPG\) · Guilherme \(Vice-diretor\) · Raffael \(Diretor\) · Ricardo \(Vice-diretor\) · Silvana \(CGPG\)/g,'Guilherme (Vice-diretor) · Raffael (Diretor) · Ricardo (Vice-diretor) · Silvana (CGPG) · Thais Marinho (CGPG)')
+               .replace(/Gisele \(CGPG\)/g,'Thais Marinho (CGPG)').replace(/Gisele/g,'Thais Marinho');
+          localStorage.setItem('pei2026_plano_v2',s);
+        }
+        const dd=JSON.parse(s);
+        // migração única: data da última atualização fixada em 23/07/2026
+        if(!localStorage.getItem('pei2026_mig_data_0723')){
+          if(dd.meta) dd.meta.data='2026-07-23';
+          localStorage.setItem('pei2026_plano_v2',JSON.stringify(dd));
+          localStorage.setItem('pei2026_mig_data_0723','1');
+        }
+        restoreData(dd);
+      }
+    } catch(e){}
     document.querySelectorAll('select.status-sel').forEach(sel=>applyStatus(sel));
   }
   // restore saved validation
@@ -597,7 +618,7 @@ function renderStamp(stamp) {
 }
 
 /* ════ DATA & RENDER ════ */
-const RESPONSAVEIS = ['','Raffael (Diretor)','Guilherme (Vice-diretor)','Ricardo (Vice-diretor)','Gisele (CGPG)','Silvana (CGPG)'];
+const RESPONSAVEIS = ['','Raffael (Diretor)','Guilherme (Vice-diretor)','Ricardo (Vice-diretor)','Silvana (CGPG)','Thais Marinho (CGPG)'];
 const STATUS_OPTS = [
   {val:'',label:'— selecionar —',cls:''},
   {val:'nao-iniciado',label:'Não iniciado',cls:'st-nao-iniciado'},
@@ -608,26 +629,12 @@ const STATUS_OPTS = [
 const BI_STATES=['bi-none','bi-vermelho','bi-amarelo','bi-verde-claro','bi-verde-escuro'];
 const BI_LABELS=['—','Crítico','Atenção','Atingido','Excelência'];
 
-const INDICADORES=[
-  {num:1,nome:'Professor Presente',metaExc:'95%',segmentos:[{key:'geral',meta:'',bi:['bi-vermelho','bi-amarelo','bi-amarelo','bi-verde-claro']}],acoes:[{num:1,texto:'',resp:'',prazo:'',status:'nao-iniciado'},{num:2,texto:'',resp:'',prazo:'',status:'em-andamento'},{num:3,texto:'',resp:'',prazo:'',status:'concluido'}]},
-  {num:2,nome:'Aluno Presente',metaExc:'',segmentos:[{key:'EFAI',meta:'EFAI 95%',bi:['bi-vermelho','bi-amarelo','bi-verde-claro','bi-verde-escuro']},{key:'EFAF',meta:'EFAF 92%',bi:['bi-none','bi-none','bi-none','bi-none']},{key:'EM',meta:'EM 90%',bi:['bi-none','bi-none','bi-none','bi-none']}],acoes:[{num:1,texto:'',resp:'',prazo:'',status:'atrasado'},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]},
-  {num:3,nome:'Satisfação dos Estudantes\n(NPS Global)',metaExc:'10',segmentos:[{key:'sem',meta:'',bi:['bi-none','bi-none']}],nps:true,acoes:[{num:1,texto:'',resp:'',prazo:'',status:''},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]},
-  {num:4,nome:'Proficiência SARESP\n(ano anterior)\nou\n02 reconhecimentos diamante + 01 ouro',metaExc:'',segmentos:[{key:'EFAI',meta:'EFAI 7,3',bi:['bi-none']},{key:'EFAF',meta:'EFAF 5,0',bi:['bi-none']},{key:'EM',meta:'EM 4,0',bi:['bi-none']}],saresp:true,acoes:[{num:1,texto:'',resp:'',prazo:'',status:''},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]}
-];
-const TEMATICAS=[
-  {num:1,nome:'Premissas',metaExc:'3,5',meta:'',acoes:[{num:1,texto:'',resp:'',prazo:'',status:'nao-iniciado'},{num:2,texto:'',resp:'',prazo:'',status:'em-andamento'},{num:3,texto:'',resp:'',prazo:'',status:'concluido'}]},
-  {num:2,nome:'Princípios',metaExc:'3,5',meta:'',acoes:[{num:1,texto:'',resp:'',prazo:'',status:'atrasado'},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]},
-  {num:3,nome:'Acolhimentos',metaExc:'3,5',meta:'',acoes:[{num:1,texto:'',resp:'',prazo:'',status:''},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]},
-  {num:4,nome:'Projeto de Vida',metaExc:'3,5',meta:'',acoes:[{num:1,texto:'',resp:'',prazo:'',status:''},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]},
-  {num:5,nome:'Tutoria',metaExc:'3,5',meta:'',acoes:[{num:1,texto:'',resp:'',prazo:'',status:''},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]},
-  {num:6,nome:'Excelência Acadêmica 01',metaExc:'3,5',meta:'',acoes:[{num:1,texto:'',resp:'',prazo:'',status:''},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]},
-  {num:7,nome:'Eletivas',metaExc:'3,5',meta:'',acoes:[{num:1,texto:'',resp:'',prazo:'',status:''},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]},
-  {num:8,nome:'Práticas de Protagonismo Juvenil',metaExc:'3,5',meta:'',acoes:[{num:1,texto:'',resp:'',prazo:'',status:''},{num:2,texto:'',resp:'',prazo:'',status:''},{num:3,texto:'',resp:'',prazo:'',status:''}]}
-];
+const INDICADORES=[{"num": 1, "nome": "Professor Presente", "metaExc": "95%", "segmentos": [{"key": "geral", "meta": "", "bi": ["bi-vermelho", "bi-amarelo", "bi-amarelo", "bi-verde-claro"]}], "acoes": [{"num": 1, "texto": "Monitoramento quinzenal da frequência docente e do registro de aulas/conteúdos na Sala do Futuro, com auditoria (Farol Escolar) e devolutiva individual ao professor sobre pendências.", "resp": "Raffael (Diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Gestão de ausências: rodízio de substituição e uso de atividades prontas do Caderno do Aluno e do Tarefas SP para que nenhuma aula fique sem proposta pedagógica.", "resp": "Ricardo (Vice-diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 3, "texto": "Pauta fixa nas ATPC com análise dos dados do BI SEDUC, da Prova Paulista e do Currículo Priorizado, garantindo presença e engajamento docente nas formações.", "resp": "Thais Marinho (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 4, "texto": "Acolhimento e escuta do corpo docente nas turmas críticas (1ªs séries e 6ºs anos) e planejamento antecipado de ausências previstas.", "resp": "Guilherme (Vice-diretor)", "prazo": "3º e 4º Bim", "status": "em-andamento"}]}, {"num": 2, "nome": "Aluno Presente", "metaExc": "", "segmentos": [{"key": "EFAI", "meta": "EFAI 95%", "bi": ["bi-vermelho", "bi-amarelo", "bi-verde-claro", "bi-verde-escuro"]}, {"key": "EFAF", "meta": "EFAF 92%", "bi": ["bi-none", "bi-none", "bi-none", "bi-none"]}, {"key": "EM", "meta": "EM 90%", "bi": ["bi-none", "bi-none", "bi-none", "bi-none"]}], "acoes": [{"num": 1, "texto": "Busca Ativa Escolar: registro diário de faltas, contato com a família em até 48h, visita domiciliar e acionamento da rede de proteção, conforme protocolo SEDUC.", "resp": "Ricardo (Vice-diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Painel semanal de frequência por turma (BI SEDUC e Farol Escolar) com lista de estudantes em risco de infrequência, repassada aos professores tutores.", "resp": "Thais Marinho (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 3, "texto": "Reuniões bimestrais com famílias com devolutiva de frequência e dos resultados da Prova Paulista, reforçando a corresponsabilidade.", "resp": "Silvana (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 4, "texto": "Atenção especial à frequência no Ensino Médio (cursos técnicos de Administração e Desenvolvimento de Sistemas e 1ªs séries) e nos 6ºs anos, turmas com queda no 2º bimestre.", "resp": "Guilherme (Vice-diretor)", "prazo": "3º e 4º Bim", "status": "em-andamento"}]}, {"num": 3, "nome": "Satisfação dos Estudantes\n(NPS Global)", "metaExc": "10", "segmentos": [{"key": "sem", "meta": "", "bi": ["bi-none", "bi-none"]}, {"key": "sem2", "meta": "", "bi": ["bi-none", "bi-none"]}], "nps": true, "acoes": [{"num": 1, "texto": "Aplicação da pesquisa de satisfação (NPS) do 1º semestre com todas as turmas e devolutiva dos resultados aos líderes de turma e ao Grêmio.", "resp": "Silvana (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Plano de resposta aos pontos críticos do NPS: ajustes de rotina, ambiente e comunicação, acompanhados nas reuniões de Conselho de Classe e Tutoria.", "resp": "Raffael (Diretor)", "prazo": "2º Bim", "status": "concluido"}, {"num": 3, "texto": "Valorização da voz do estudante: eletivas escolhidas pelos alunos, clubes e feira de protagonismo, ampliando o pertencimento às aulas.", "resp": "Guilherme (Vice-diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 4, "texto": "Aplicação do NPS do 2º semestre e comparação com o 1º semestre.", "resp": "Silvana (CGPG)", "prazo": "2º semestre", "status": "nao-iniciado"}]}, {"num": 4, "nome": "Proficiência SARESP\n(ano anterior)\nou\n02 reconhecimentos diamante + 01 ouro", "metaExc": "", "segmentos": [{"key": "EFAI", "meta": "EFAI 7,3", "bi": ["bi-none"]}, {"key": "EFAF", "meta": "EFAF 5,0", "bi": ["bi-none"]}, {"key": "EM", "meta": "EM 4,0", "bi": ["bi-none"]}], "saresp": true, "acoes": [{"num": 1, "texto": "Habilidades essenciais do Currículo Priorizado de Matemática e Língua Portuguesa mapeadas por ano/série e incorporadas ao planejamento (Plano de Aula Dinâmico) e à rotina de sala.", "resp": "Thais Marinho (CGPG)", "prazo": "1º Bim", "status": "concluido"}, {"num": 2, "texto": "Prova Paulista usada como diagnóstico: análise por turma e componente no BI SEDUC (1º bim 49,4%; 2º bim 47,3%) e definição de turmas prioritárias: 1ªs séries A, B e C, 6ºs anos A, B e C e 3ª série DS.", "resp": "Thais Marinho (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 3, "texto": "Aulas de Orientação de Estudos de Matemática e Português dedicadas à recomposição das habilidades essenciais, com atividades do Caderno do Aluno e das plataformas SEDUC (Tarefas SP, Matific, Khan Academy, Leia SP e Redação Paulista).", "resp": "Silvana (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 4, "texto": "Eletivas de Matemática e Português ofertadas como espaço de recomposição de aprendizagens, com atribuição prioritária das turmas e estudantes de menor desempenho.", "resp": "Guilherme (Vice-diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 5, "texto": "Simulados e sequências de treino por habilidade com meta de recuperar ao menos 5 p.p. na Prova Paulista do 3º bimestre, com ênfase em Matemática, Física, Química, Filosofia e Inglês.", "resp": "Raffael (Diretor)", "prazo": "3º e 4º Bim", "status": "em-andamento"}]}];
+const TEMATICAS=[{"num": 1, "nome": "Premissas", "metaExc": "3,5", "meta": "", "acoes": [{"num": 1, "texto": "Formação continuada em ATPC com foco no Currículo Priorizado, no uso do Caderno do Aluno e na leitura dos dados do BI SEDUC e da Prova Paulista.", "resp": "Thais Marinho (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Corresponsabilidade: devolutiva dos resultados do 1º e 2º bimestres às famílias e ao Conselho de Escola, com compromissos por turma.", "resp": "Raffael (Diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 3, "texto": "Alinhamento periódico com a Supervisão e a Diretoria de Ensino para acompanhamento do Plano de Ação e das metas PEI.", "resp": "Raffael (Diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}]}, {"num": 2, "nome": "Princípios", "metaExc": "3,5", "meta": "", "acoes": [{"num": 1, "texto": "Pedagogia da Presença: rotina de acompanhamento próximo dos estudantes com queda de desempenho, com estratégias definidas em Conselho de Classe.", "resp": "Silvana (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Observação de aulas com devolutiva formativa, priorizando componentes e turmas com menor desempenho na Prova Paulista (Matemática, Física, Química, Filosofia e Inglês).", "resp": "Thais Marinho (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 3, "texto": "Painel do Conselho de Classe para a análise de dados por turma e a definição conjunta de intervenções.", "resp": "Raffael (Diretor)", "prazo": "2º Bim", "status": "concluido"}]}, {"num": 3, "nome": "Acolhimentos", "metaExc": "3,5", "meta": "", "acoes": [{"num": 1, "texto": "Acolhida diária com rotina de integração e escuta, fortalecendo o vínculo e a permanência dos estudantes.", "resp": "Silvana (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Acolhimento e transição dos 6ºs anos e das 1ªs séries, turmas de maior queda no 2º bimestre, com atenção socioemocional e acompanhamento de aprendizagem.", "resp": "Guilherme (Vice-diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 3, "texto": "Acolhimento de estudantes com necessidades educacionais especiais, com apoio do SIGEE e da flexibilização curricular (PAEE).", "resp": "Thais Marinho (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}]}, {"num": 4, "nome": "Projeto de Vida", "metaExc": "3,5", "meta": "", "acoes": [{"num": 1, "texto": "Integração dos resultados da Prova Paulista ao Projeto de Vida: cada estudante define metas acadêmicas por componente e as acompanha ao longo do bimestre.", "resp": "Silvana (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Orientação vocacional e de carreira, com foco nos cursos técnicos de Administração e Desenvolvimento de Sistemas e no Ensino Médio.", "resp": "Guilherme (Vice-diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 3, "texto": "Uso de relatórios individuais da Prova Paulista nas aulas de Projeto de Vida para autoavaliação e planejamento de estudos.", "resp": "Silvana (CGPG)", "prazo": "2º Bim", "status": "concluido"}]}, {"num": 5, "nome": "Tutoria", "metaExc": "3,5", "meta": "", "acoes": [{"num": 1, "texto": "Tutoria Inteligente (FE-1): cada professor tutor recebe, a cada bimestre, os dados da Prova Paulista, da frequência e das notas de seus tutorados.", "resp": "Raffael (Diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Planos individuais de acompanhamento dos estudantes abaixo do esperado, com encaminhamento para Orientação de Estudos, eletivas de recomposição e Busca Ativa.", "resp": "Silvana (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 3, "texto": "Encontros de tutoria com foco na rotina de estudos e no uso do Tarefas SP e do Caderno do Aluno.", "resp": "Thais Marinho (CGPG)", "prazo": "2º Bim", "status": "concluido"}]}, {"num": 6, "nome": "Excelência Acadêmica 01", "metaExc": "3,5", "meta": "", "acoes": [{"num": 1, "texto": "Cumprimento do Currículo Priorizado: acompanhamento do planejamento e do registro das aulas na Sala do Futuro, com verificação de conteúdos e habilidades essenciais efetivamente trabalhados.", "resp": "Thais Marinho (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Uso sistemático do Caderno do Aluno nas aulas de todos os componentes, com checagem periódica pela coordenação.", "resp": "Silvana (CGPG)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 3, "texto": "Otimização do Tarefas SP e das plataformas digitais SEDUC: calendário de tarefas por componente, acompanhamento de engajamento e devolutiva aos estudantes.", "resp": "Raffael (Diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 4, "texto": "Monitoramento pelos dados do BI SEDUC e pelo Painel do Conselho de Classe, com leitura por habilidade essencial e revisão das ações a cada bimestre.", "resp": "Raffael (Diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 5, "texto": "Recomposição de aprendizagens nas turmas prioritárias (1ªs séries A, B e C, 6ºs anos A, B e C e 3ª série DS), com aulas de reforço e atividades focadas nas habilidades essenciais.", "resp": "Thais Marinho (CGPG)", "prazo": "3º e 4º Bim", "status": "em-andamento"}, {"num": 6, "texto": "Plano de recuperação para Química, Filosofia, Inglês e Tecnologia, componentes com maior queda do 1º para o 2º bimestre.", "resp": "Thais Marinho (CGPG)", "prazo": "3º e 4º Bim", "status": "em-andamento"}]}, {"num": 7, "nome": "Eletivas", "metaExc": "3,5", "meta": "", "acoes": [{"num": 1, "texto": "Oferta de eletivas de Matemática e de Língua Portuguesa voltadas à recomposição das habilidades essenciais, com atribuição por aula por professores com perfil adequado.", "resp": "Guilherme (Vice-diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Escolha das eletivas pelos estudantes, com orientação dos tutores para direcionar quem precisa de recomposição.", "resp": "Silvana (CGPG)", "prazo": "1º Bim", "status": "concluido"}, {"num": 3, "texto": "Avaliação das eletivas no fim do 2º bimestre (frequência, engajamento e relação com a Prova Paulista) para ajustar a oferta do 2º semestre.", "resp": "Thais Marinho (CGPG)", "prazo": "2º Bim", "status": "concluido"}]}, {"num": 8, "nome": "Práticas de Protagonismo Juvenil", "metaExc": "3,5", "meta": "", "acoes": [{"num": 1, "texto": "Líderes de turma e Grêmio como parceiros na gestão da rotina, validando diariamente o Guia de Aprendizagem Digital e acompanhando a frequência.", "resp": "Guilherme (Vice-diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}, {"num": 2, "texto": "Monitoria entre pares e plantões de estudo conduzidos por estudantes, com apoio de professores, em Matemática, Física e Química.", "resp": "Silvana (CGPG)", "prazo": "2º Bim", "status": "concluido"}, {"num": 3, "texto": "Clubes e projetos juvenis integrados ao currículo (feira de protagonismo), com apresentação dos resultados à comunidade escolar.", "resp": "Guilherme (Vice-diretor)", "prazo": "1º e 2º Bim", "status": "concluido"}]}];
 
 function respSelect(val){return`<select class="resp-sel" onchange="markDirty()">${RESPONSAVEIS.map(r=>`<option value="${r}"${r===val?' selected':''}>${r||'— selecionar —'}</option>`).join('')}</select>`;}
 function statusTd(val){const opt=STATUS_OPTS.find(o=>o.val===val)||STATUS_OPTS[0];return`<td class="st-cell ${opt.cls}"><select class="status-sel" onchange="applyStatus(this)">${STATUS_OPTS.map(o=>`<option value="${o.val}"${o.val===val?' selected':''}>${o.label}</option>`).join('')}</select></td>`;}
-function biTd(sc){const i=BI_STATES.indexOf(sc);return`<td class="bi-cell ${sc}" data-bi-state="${i>=0?i:0}" onclick="cycleBi(this)"><div>${BI_LABELS[i>=0?i:0]}</div></td>`;}
+function biTd(sc,span){const i=BI_STATES.indexOf(sc);return`<td class="bi-cell ${sc}"${span?` colspan="${span}"`:''} data-bi-state="${i>=0?i:0}" onclick="cycleBi(this)"><div>${BI_LABELS[i>=0?i:0]}</div></td>`;}
 
 function renderIndicadores(){
   let html='';
@@ -639,7 +646,7 @@ function renderIndicadores(){
       const acao=ind.acoes[r]||{num:r+1,texto:'',resp:'',prazo:'',status:''};
       html+=`<tr class="row-acao">`;
       if(first){
-        const ns=ind.segmentos.length;
+        const ns=total;
         html+=`<td rowspan="${ns}" style="text-align:center;font-weight:700;font-size:13px">${ind.num}</td>`;
         html+=`<td rowspan="${ns}" class="editable" contenteditable="true" onblur="markDirty()" style="font-weight:700;white-space:pre-wrap">${ind.nome}</td>`;
         html+=`<td rowspan="${ns}" class="editable" contenteditable="true" onblur="markDirty()" style="text-align:center">${ind.metaExc}</td>`;
@@ -647,8 +654,8 @@ function renderIndicadores(){
       }
       if(seg){
         if(ind.nps){
-          if(r===0){html+=`<td class="editable" contenteditable="true" onblur="markDirty()" style="text-align:center"></td><td class="sem-header" style="text-align:center">1º semestre</td><td class="sem-header" style="text-align:center">2º semestre</td><td></td>`;}
-          else{html+=`<td class="editable" contenteditable="true" style="text-align:center"></td>${biTd(seg.bi[0]||'bi-none')}${biTd(seg.bi[1]||'bi-none')}<td></td>`;}
+          if(r===0){html+=`<td class="editable" contenteditable="true" onblur="markDirty()" style="text-align:center"></td><td class="sem-header" colspan="2" style="text-align:center">1º semestre</td><td class="sem-header" colspan="2" style="text-align:center">2º semestre</td>`;}
+          else{html+=`<td class="editable" contenteditable="true" style="text-align:center"></td>${biTd(seg.bi[0]||'bi-none',2)}${biTd(seg.bi[1]||'bi-none',2)}`;}
         }else if(ind.saresp){
           html+=`<td class="editable label-cell" contenteditable="true" onblur="markDirty()" style="text-align:center">${seg.meta}</td><td class="sem-header" colspan="3" style="text-align:center;font-size:11px">Resultado 2025</td><td></td>`;
         }else{
@@ -703,6 +710,81 @@ function applyStatus(sel){
   if(currentUser==='raffael')markDirty();
 }
 
+
+/* ════ EXPORT (documento de impressão para a comunidade) ════ */
+function exportPlano(){
+  if(!currentUser){return;}
+  const wrap=document.querySelector('.page-wrapper').cloneNode(true);
+  // remove elementos de interface
+  wrap.querySelectorAll('.mode-banner,#validation-panel,.save-bar,.user-badge,.btn-logout').forEach(el=>el.remove());
+  // cabeçalho: remove espaçadores e deixa só o título
+  const th=wrap.querySelector('.top-header');
+  if(th){th.innerHTML='<div class="top-header-title">PLANO DE AÇÃO 2026</div>';}
+  // campos de metadados viram texto
+  wrap.querySelectorAll('input.meta-val').forEach(inp=>{
+    const live=document.getElementById(inp.id);
+    const sp=document.createElement('div'); sp.className='meta-val meta-static';
+    let v=live?live.value:inp.value;
+    if(inp.type==='date'&&v){v=new Date(v+'T12:00:00').toLocaleDateString('pt-BR');}
+    sp.textContent=v; inp.replaceWith(sp);
+  });
+  // selects (responsável/status) viram texto, mantendo as classes de cor da célula
+  const liveSelects=Array.from(document.querySelectorAll('.page-wrapper select'));
+  const cloneSelects=Array.from(wrap.querySelectorAll('select'));
+  cloneSelects.forEach((sel,i)=>{
+    const live=liveSelects[i]||sel;
+    const txt=(live.options[live.selectedIndex]||{}).text||'';
+    const span=document.createElement('span');
+    span.textContent=live.value?txt:'';
+    span.className='static-val';
+    sel.replaceWith(span);
+  });
+  // limpar interatividade
+  wrap.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+  wrap.querySelectorAll('[onclick],[onblur],[onchange]').forEach(el=>{el.removeAttribute('onclick');el.removeAttribute('onblur');el.removeAttribute('onchange');});
+  wrap.querySelectorAll('.legend-item span').forEach(sp=>{sp.innerHTML=sp.innerHTML.replace(' – clique para alternar a cor','');});
+  // carimbo de supervisão só aparece se houver parecer registrado
+  const stamp=wrap.querySelector('#val-stamp'); if(stamp&&!stamp.classList.contains('show')) stamp.remove();
+
+  const css=Array.from(document.querySelectorAll('style')).map(st=>st.textContent).join('\n');
+  const now=new Date();
+  const geradoEm=now.toLocaleDateString('pt-BR')+' às '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const extraCss=`
+    body{background:#fff!important;margin:0}
+    .page-wrapper{max-width:none!important;box-shadow:none!important;min-height:0!important;margin:0 auto}
+    .export-bar{position:sticky;top:0;z-index:50;background:#1a1a1a;color:#ddd;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 20px;font:13px Calibri,'Segoe UI',Arial,sans-serif}
+    .export-bar button{background:#149078;color:#fff;border:none;border-radius:4px;padding:7px 18px;font-weight:700;font-size:13px;cursor:pointer;margin-left:8px}
+    .export-bar button.sec{background:transparent;border:1px solid #666;color:#ccc}
+    .meta-static{border-bottom:1px dashed #ccc;padding:2px 4px;font-size:13px}
+    .static-val{display:block;font-size:11.5px;line-height:1.3;text-align:center}
+    table.plan-table td.st-cell{text-align:center;font-weight:600}
+    .export-footer{padding:10px 20px;font-size:11px;color:#666;border-top:1px solid #ccc;margin-top:8px}
+    @page{size:A4 landscape;margin:8mm}
+    @media print{
+      .export-bar{display:none!important}
+      .page-wrapper{zoom:.72}
+      table.plan-table tr{break-inside:avoid;page-break-inside:avoid}
+      table.plan-table thead{display:table-header-group}
+      .section-header,.top-header,.legend-box,.note-box,.sem-header,th,td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    }`;
+  const doc=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Ação PEI 2026 – EE Prof. Luiz Simioni Sobrinho</title>
+<style>${css}\n${extraCss}</style></head><body>
+<div class="export-bar"><span>Documento para a comunidade escolar · pronto para impressão (A4 paisagem)</span>
+<span><button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button><button class="sec" onclick="window.close()">Fechar</button></span></div>
+${wrap.outerHTML}
+<div class="export-footer">EE Prof. Luiz Simioni Sobrinho · Plano de Ação PEI 2026 · Documento gerado em ${geradoEm}</div>
+</body></html>`;
+  const blob=new Blob([doc],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const w=window.open(url,'_blank');
+  if(!w){ // pop-up bloqueado: baixa o arquivo
+    const a=document.createElement('a'); a.href=url; a.download='Plano_de_Acao_PEI_2026_comunidade.html';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
 /* ════ PERSISTENCE ════ */
 function collectData(){
   const d={meta:{escola:document.getElementById('meta-escola').value,gestora:document.getElementById('meta-gestora').value,data:document.getElementById('meta-data').value}};
@@ -733,7 +815,7 @@ function restoreData(d){
 
 let dirty=false;
 function markDirty(){if(currentUser!=='raffael')return;dirty=true;document.getElementById('save-status').textContent='● Alterações não salvas';document.getElementById('save-status').style.color='#ff9800';}
-function saveData(){if(currentUser!=='raffael')return;localStorage.setItem('pei2026_plano',JSON.stringify(collectData()));dirty=false;document.getElementById('save-status').textContent='✓ Salvo às '+new Date().toLocaleTimeString('pt-BR');document.getElementById('save-status').style.color='#8bc34a';}
+function saveData(){if(currentUser!=='raffael')return;localStorage.setItem('pei2026_plano_v2',JSON.stringify(collectData()));dirty=false;document.getElementById('save-status').textContent='✓ Salvo às '+new Date().toLocaleTimeString('pt-BR');document.getElementById('save-status').style.color='#8bc34a';}
 setInterval(()=>{if(dirty&&currentUser==='raffael')saveData();},60000);
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 </script>
